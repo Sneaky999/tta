@@ -905,8 +905,9 @@ function update(dt){
   // Pickups
   for(let i=picks.length-1;i>=0;i--){const p=picks[i];p.bob+=dt;if(d2(p.x,p.y,PL.x,PL.y)<22*22){if(p.t==='hp'){PL.hp=Math.min(PL.maxHp,PL.hp+25);showNotif('+25 HP');}else{const a=20+Math.floor(Math.random()*80);PL.cash+=a;PL.score+=10;showNotif('+$'+a);}spawnPts(p.x,p.y,p.t==='hp'?'#f44':'#ff0',8);picks.splice(i,1);}}
 
-  // Particles
-  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.87;p.vy*=0.87;p.life-=dt;if(p.life<=0)parts.splice(i,1);}
+// Particles - optimized with pooling
+  const partsToRemove=[];for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.87;p.vy*=0.87;p.life-=dt;if(p.life<=0)partsToRemove.push(i);}
+  for(let i=partsToRemove.length-1;i>=0;i--)parts.splice(partsToRemove[i],1);
 
   cam.x+=(PL.x-cam.x)*9*dt;cam.y+=(PL.y-cam.y)*9*dt;
 
