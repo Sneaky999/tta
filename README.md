@@ -1,8 +1,8 @@
 # TTA1.0.1
 This is a 2d version of GTA(TTA) which is under construction.
-# STREET CRIME — Project Structure
+# TTA — Project Structure
 
-A top-down open-world crime game.
+A top-down open-world game.
 
 ## Files
 
