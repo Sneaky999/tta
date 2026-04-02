@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>STREET CRIME</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap');
+:root{
+  --gold:#ffc820;--red:#ff2a2a;--blue:#3af;--green:#3ffa6a;
+  --bg:#050508;--hud-bg:rgba(5,5,12,0.88);--border:rgba(255,200,0,0.25);
+}
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;-webkit-user-select:none;user-select:none;}
+body{background:var(--bg);overflow:hidden;font-family:'Share Tech Mono',monospace;width:100vw;height:100vh;}
+#gc{position:relative;width:100vw;height:100vh;overflow:hidden;}
+canvas{display:block;width:100%;height:100%;}
+
+/* ── HUD ── */
+#hud{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:10;}
+#topBar{display:flex;justify-content:space-between;padding:8px 10px;gap:6px;}
+.hb{
+  background:var(--hud-bg);
+  border:1px solid var(--border);
+  border-radius:4px;padding:5px 9px;min-width:88px;
+  box-shadow:0 2px 14px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter:blur(4px);
+}
+.hl{font-size:7px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:700;opacity:.8;}
+.hv{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;line-height:1.1;text-shadow:0 0 8px rgba(255,200,0,.3);}
+#hpBar{width:100%;height:4px;background:#1a0000;border-radius:2px;margin-top:3px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);}
+#hpFill{height:100%;background:linear-gradient(90deg,#c00,#ff4400);border-radius:2px;transition:width .18s;box-shadow:0 0 6px #ff4400;}
+#wStars{display:flex;gap:2px;margin-top:2px;}
+.star{color:#1a1a1a;font-size:12px;transition:all .2s;}
+.star.on{color:var(--gold);text-shadow:0 0 8px var(--gold),0 0 16px rgba(255,200,0,.4);}
+
+/* ── Weapon HUD ── */
+#wHUD{position:absolute;bottom:168px;left:14px;z-index:10;pointer-events:none;}
+.ws{background:rgba(5,5,12,0.82);border:1px solid rgba(255,255,255,0.1);border-radius:3px;padding:3px 8px;margin-bottom:3px;display:flex;align-items:center;gap:6px;opacity:0.4;transition:all .15s;}
+.ws.act{border-color:var(--gold);opacity:1;box-shadow:0 0 10px rgba(255,200,0,.3),inset 0 0 8px rgba(255,200,0,.05);}
+.wi{font-size:14px;}.wn{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;letter-spacing:1px;}.wa{font-size:10px;color:#666;margin-left:auto;font-family:'Share Tech Mono',monospace;}.wa.lo{color:#f44;animation:blink .6s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
+
+/* ── Speed ── */
+#spdBox{position:absolute;bottom:168px;right:128px;background:rgba(5,5,12,0.85);border:1px solid rgba(0,200,255,0.25);border-radius:4px;padding:4px 9px;display:none;z-index:10;pointer-events:none;text-align:center;box-shadow:0 0 12px rgba(0,180,255,0.15);}
+#carNm{font-size:7px;letter-spacing:3px;color:var(--blue);text-transform:uppercase;opacity:.7;}
+#spdVal{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue);text-shadow:0 0 10px rgba(0,180,255,.5);}
+
+/* ── Minimap ── */
+#mm{position:absolute;bottom:168px;right:14px;width:108px;height:108px;border:1px solid rgba(255,200,0,.35);border-radius:4px;background:#000;overflow:hidden;z-index:10;box-shadow:0 0 16px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.04);}
+#mm::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,200,0,.04) 0%,transparent 60%);pointer-events:none;z-index:1;}
+#mm canvas{width:100%;height:100%;}
+
+/* ── Notification ── */
+#notif{
+  position:absolute;top:76px;left:50%;transform:translateX(-50%);
+  background:rgba(5,5,12,0.92);border:1px solid rgba(255,200,0,.5);border-radius:3px;
+  padding:6px 16px;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);
+  letter-spacing:3px;z-index:25;opacity:0;transition:opacity .22s;pointer-events:none;white-space:nowrap;
+  box-shadow:0 0 20px rgba(255,200,0,.2);
+}
+#areaTag{position:absolute;top:76px;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(255,255,255,0.38);letter-spacing:3px;pointer-events:none;z-index:10;white-space:nowrap;}
+
+/* ── Controls ── */
+#ctrl{position:absolute;bottom:0;left:0;right:0;height:158px;z-index:10;display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px 14px;pointer-events:none;}
+#jz{width:128px;height:128px;position:relative;pointer-events:all;}
+#jb{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1.5px solid rgba(255,255,255,.12);position:absolute;}
+#jk{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,200,0,.95),rgba(180,90,0,.85));border:1.5px solid rgba(255,200,0,.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 16px rgba(255,160,0,.45),0 2px 8px rgba(0,0,0,.5);}
+#ab{display:flex;flex-direction:column;gap:7px;align-items:flex-end;pointer-events:all;}
+.br{display:flex;gap:7px;}
+.btn{
+  width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:1px;color:#fff;
+  border:1.5px solid rgba(255,255,255,.2);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:transform .07s,opacity .07s;pointer-events:all;
+  box-shadow:0 2px 8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(2px);
+}
+.btn:active{transform:scale(0.83);opacity:.65;}
+#bA{background:radial-gradient(circle at 40% 35%,#d00,#600);border-color:rgba(255,60,60,.5);width:62px;height:62px;font-size:20px;box-shadow:0 0 16px rgba(200,0,0,.35),0 2px 8px rgba(0,0,0,.6);}
+#bS{background:radial-gradient(circle at 40% 35%,#062,#031);border-color:rgba(0,200,80,.3);}
+#bE{background:radial-gradient(circle at 40% 35%,#214,#102);border-color:rgba(80,80,255,.3);}
+#bSh{background:radial-gradient(circle at 40% 35%,#530,#210);border-color:rgba(255,140,0,.35);}
+#bSw{background:radial-gradient(circle at 40% 35%,#034,#012);border-color:rgba(0,200,255,.3);}
+
+/* ── SHOP ── */
+#shopOverlay{position:absolute;inset:0;background:rgba(4,4,10,0.97);z-index:60;display:none;flex-direction:column;align-items:center;overflow:hidden;}
+#shopHeader{width:100%;background:linear-gradient(180deg,rgba(20,10,0,1),rgba(10,5,0,1));border-bottom:1px solid rgba(255,140,0,.3);padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#shopTitle{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#f80;letter-spacing:4px;text-shadow:0 0 16px rgba(255,140,0,.4);}
+#shopMoney{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);text-shadow:0 0 8px rgba(255,200,0,.3);}
+#shopCloseBtn{background:rgba(160,0,0,.8);color:#fff;border:1px solid rgba(255,60,60,.4);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;padding:8px 18px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 0 10px rgba(200,0,0,.3);}
+#shopCloseBtn:active{background:#600;transform:scale(.93);}
+#shopBody{width:100%;flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:10px 12px 30px;}
+.sSection{margin-bottom:14px;}
+.sSec{font-family:'Bebas Neue',sans-serif;font-size:14px;color:rgba(255,255,255,.35);letter-spacing:4px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:3px;margin-bottom:7px;}
+.sItem{display:flex;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:4px;padding:7px 9px;margin-bottom:5px;gap:8px;transition:border-color .15s;}
+.sIco{font-size:18px;width:24px;text-align:center;}
+.sInf{flex:1;}
+.sNm{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#ddd;letter-spacing:1px;}
+.sDsc{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:1px;font-family:'Share Tech Mono',monospace;}
+.sPr{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);margin-right:4px;text-shadow:0 0 6px rgba(255,200,0,.3);}
+.sBuy{background:linear-gradient(135deg,#b60,#840);color:#fff;border:1px solid rgba(255,160,0,.3);font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;padding:7px 12px;border-radius:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.sBuy:active{background:#630;transform:scale(.91);}
+.sBuy:disabled{background:#222;color:#444;border-color:#333;cursor:default;}
+
+/* ── START SCREEN ── */
+#startScreen{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;overflow:hidden;}
+#startScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%,rgba(255,160,0,.06),transparent 70%),radial-gradient(ellipse at 20% 80%,rgba(255,0,0,.05),transparent 50%);pointer-events:none;}
+#startScreen h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(52px,15vw,84px);color:var(--gold);text-shadow:0 0 40px rgba(255,200,0,.5),0 0 80px rgba(255,100,0,.2),3px 3px 0 #500;letter-spacing:6px;margin-bottom:4px;animation:titlePulse 3s ease-in-out infinite;}
+@keyframes titlePulse{0%,100%{text-shadow:0 0 40px rgba(255,200,0,.5),3px 3px 0 #500;}50%{text-shadow:0 0 60px rgba(255,200,0,.8),0 0 100px rgba(255,100,0,.3),3px 3px 0 #600;}}
+.sub{color:rgba(255,255,255,.25);font-size:10px;letter-spacing:6px;text-transform:uppercase;margin-bottom:32px;font-family:'Share Tech Mono',monospace;}
+#startBtn{background:linear-gradient(135deg,#c80,#840);color:#fff;border:1px solid rgba(255,200,0,.4);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;padding:13px 46px;border-radius:3px;cursor:pointer;margin-bottom:18px;box-shadow:0 0 24px rgba(200,120,0,.4),0 4px 16px rgba(0,0,0,.6);animation:btnGlow 2s ease-in-out infinite;}
+@keyframes btnGlow{0%,100%{box-shadow:0 0 20px rgba(200,120,0,.3);}50%{box-shadow:0 0 36px rgba(255,180,0,.6);}}
+#startBtn:active{transform:scale(.95);}
+.inst{color:rgba(255,255,255,.2);font-size:9px;letter-spacing:2px;text-align:center;line-height:2.4;text-transform:uppercase;font-family:'Share Tech Mono',monospace;}
+
+/* ── GAME OVER ── */
+#goScreen{position:absolute;inset:0;background:rgba(0,0,0,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;}
+#goScreen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(200,0,0,.08),transparent 70%);pointer-events:none;}
+#goScreen h2{font-family:'Bebas Neue',sans-serif;font-size:64px;color:#f00;text-shadow:0 0 30px #f00,0 0 60px rgba(255,0,0,.3);letter-spacing:6px;margin-bottom:6px;animation:wastedFlash .15s step-end 8;}
+@keyframes wastedFlash{50%{opacity:0;}}
+#goScore{color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:26px;text-align:center;line-height:1.9;text-shadow:0 0 8px rgba(255,200,0,.3);}
+#reBtn{background:linear-gradient(135deg,#900,#600);color:#fff;border:1px solid rgba(255,60,60,.4);font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:3px;padding:11px 40px;border-radius:3px;cursor:pointer;box-shadow:0 0 18px rgba(200,0,0,.3);}
+#reBtn:active{transform:scale(.94);}
+</style>
+</head>
+<body>
+<div id="gc">
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="topBar">
+    <div class="hb">
+      <div class="hl">Health</div>
+      <div id="hpBar"><div id="hpFill" style="width:100%"></div></div>
+      <div class="hv" id="hpV">100</div>
+    </div>
+    <div class="hb" style="text-align:center">
+      <div class="hl">Score</div>
+      <div class="hv" id="scV">0</div>
+    </div>
+    <div class="hb" style="text-align:right">
+      <div class="hl">Wanted ★★★★★</div>
+      <div id="wStars">
+        <span class="star" id="s1">★</span><span class="star" id="s2">★</span>
+        <span class="star" id="s3">★</span><span class="star" id="s4">★</span>
+        <span class="star" id="s5">★</span>
+      </div>
+      <div class="hv" id="caV">$0</div>
+    </div>
+  </div>
+</div>
+<div id="areaTag"></div>
+<div id="wHUD"></div>
+<div id="spdBox"><div id="carNm">-</div><span id="spdVal">0</span><span style="font-size:8px;color:#0ff"> MPH</span></div>
+<div id="mm"><canvas id="mm2" width="106" height="106"></canvas></div>
+<div id="notif"></div>
+
+<!-- Controls -->
+<div id="ctrl">
+  <div id="jz"><div id="jb"></div><div id="jk"></div></div>
+  <div id="ab">
+    <div class="br">
+      <div class="btn" id="bSw">SWAP</div>
+      <div class="btn" id="bSh">SHOP</div>
+      <div class="btn" id="bE">CAR</div>
+    </div>
+    <div class="br">
+      <div class="btn" id="bS">RUN</div>
+      <div class="btn" id="bA">👊</div>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div id="shopOverlay">
+  <div id="shopHeader">
+    <div id="shopTitle">🏪 AMMU-SHOP</div>
+    <div id="shopMoney">$0</div>
+    <button id="shopCloseBtn">✕ CLOSE</button>
+  </div>
+  <div id="shopBody">
+    <div class="sSection">
+      <div class="sSec">⚕ MEDICAL</div>
+      <div class="sItem">
+        <div class="sIco">💊</div>
+        <div class="sInf"><div class="sNm">Med Kit</div><div class="sDsc">+50 HP instantly</div></div>
+        <span class="sPr">$150</span>
+        <button class="sBuy" onclick="shopBuy('medkit',150)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">🛡</div>
+        <div class="sInf"><div class="sNm">Body Armor</div><div class="sDsc">Max HP → 150</div></div>
+        <span class="sPr">$400</span>
+        <button class="sBuy" onclick="shopBuy('armor',400)">BUY</button>
+      </div>
+    </div>
+    <div class="sSection">
+      <div class="sSec">🔫 WEAPONS</div>
+      <div class="sItem">
+        <div class="sIco">🔫</div>
+        <div class="sInf"><div class="sNm">Pistol</div><div class="sDsc">DMG:13 Fast • 30 ammo</div></div>
+        <span class="sPr">$200</span>
+        <button class="sBuy" onclick="shopBuy('pistol',200)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">🪃</div>
+        <div class="sInf"><div class="sNm">Shotgun</div><div class="sDsc">DMG:28×5 Slow • 15 ammo</div></div>
+        <span class="sPr">$500</span>
+        <button class="sBuy" onclick="shopBuy('shotgun',500)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">⚡</div>
+        <div class="sInf"><div class="sNm">Uzi</div><div class="sDsc">DMG:8 V.Fast • 60 ammo</div></div>
+        <span class="sPr">$700</span>
+        <button class="sBuy" onclick="shopBuy('uzi',700)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">🎯</div>
+        <div class="sInf"><div class="sNm">Sniper</div><div class="sDsc">DMG:80 V.Slow • 10 ammo</div></div>
+        <span class="sPr">$1200</span>
+        <button class="sBuy" onclick="shopBuy('sniper',1200)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">🚀</div>
+        <div class="sInf"><div class="sNm">RPG</div><div class="sDsc">DMG:120 Splash • 5 ammo</div></div>
+        <span class="sPr">$2500</span>
+        <button class="sBuy" onclick="shopBuy('rocket',2500)">BUY</button>
+      </div>
+      <div class="sItem">
+        <div class="sIco">🔄</div>
+        <div class="sInf"><div class="sNm">Ammo Refill</div><div class="sDsc">Fill all owned guns</div></div>
+        <span class="sPr">$300</span>
+        <button class="sBuy" onclick="shopBuy('ammo',300)">BUY</button>
+      </div>
+    </div>
+    <div class="sSection">
+      <div class="sSec">ℹ LEGEND</div>
+      <div class="sItem" style="flex-direction:column;align-items:flex-start;gap:3px;">
+        <div style="font-size:10px;color:#666;letter-spacing:1px;line-height:1.8;">
+          🏪 <span style="color:#f80">SHOP</span> — Buy weapons here<br>
+          🏥 <span style="color:#0f0">HOSPITAL</span> — Walk in to heal FREE<br>
+          💀 <span style="color:#f44">GANG TURF</span> — Gangsters spawn here<br>
+          🚔 <span style="color:#44f">COP HQ</span> — Many cops patrol here<br>
+          ★★★★★ = Max 5 wanted stars
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Start -->
+<div id="startScreen">
+  <h1>STREET<br>CRIME</h1>
+  <div class="sub">Open World Mayhem</div>
+  <button id="startBtn">PLAY NOW</button>
+  <div class="inst">
+    Joystick — Move &amp; Steer · 👊 — Attack<br>
+    SWAP — Switch Weapon · CAR — Jack/Exit<br>
+    SHOP — Buy Guns &amp; Health · RUN — Sprint<br>
+    🏥 Hospital heals you free · 💀 Gang turf danger
+  </div>
+</div>
+
+<!-- Game Over -->
+<div id="goScreen">
+  <h2>WASTED</h2>
+  <div id="goScore"></div>
+  <button id="reBtn">PLAY AGAIN</button>
+</div>
+</div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCRIPT LOADING ORDER (do not change order)
+     ═══════════════════════════════════════════════════════ -->
+
+<!-- 1. World: map, zones, entities, constants, cop grades -->
+<script src="world.js"></script>
+
+<!-- 2. Assets: sprites, tile textures, car draw helpers -->
+<script src="assets.js"></script>
+
+<!-- 3. Game: input, shop, HUD, AI, physics, render, loop -->
+<script src="game.js"></script>
+
+<!-- ── EXPANSION MODULES ─────────────────────────────────
+     Uncomment to activate. Each module is self-contained.
+     See the file header for integration instructions.
+     ──────────────────────────────────────────────────── -->
+
+<!-- <script src="island_a.js"></script> -->   <!-- Missions system     -->
+<!-- <script src="island_b.js"></script> -->   <!-- Events & Weather     -->
+
+</body>
+</html>
