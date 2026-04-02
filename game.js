@@ -858,5 +858,3 @@ function loop(ts){
   update(dt);render();
   requestAnimationFrame(loop);
 }
-</script>
-</body>
